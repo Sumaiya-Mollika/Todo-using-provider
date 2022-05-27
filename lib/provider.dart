@@ -17,6 +17,7 @@ class TodosModel extends ChangeNotifier {
       UnmodifiableListView(_tasks.where((todo) => todo.completed));
 
   void addTodo(Task task) {
+    var url = "https://todo-app-3bc2b-default-rtdb.firebaseio.com/todos.json";
     _tasks.add(task);
     notifyListeners();
   }
