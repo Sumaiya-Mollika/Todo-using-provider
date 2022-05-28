@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:todos_app/model.dart';
+import 'package:todos_app/provider.dart';
+
+import 'model.dart';
 
 class EditProductScreen extends StatefulWidget {
   const EditProductScreen({Key? key}) : super(key: key);
@@ -12,24 +14,88 @@ class EditProductScreen extends StatefulWidget {
 
 class _EditProductScreenState extends State<EditProductScreen> {
   final _form = GlobalKey<FormState>();
-  var _editProduct = Task(title: '');
+  var _editTodo = Task(id: null, title: '');
   var _initValues = {
     'title': '',
-    'description': '',
-    'imageUrl': '',
-    'price': '',
   };
   var _isInit = true;
   var _isLodding = false;
+  // @override
+  // void initState() {
+  //   _imageUrlFocusNode.addListener(_updateUrl);
+  //   super.initState();
+  // }
+
+  @override
+  void didChangeDependencies() {
+    if (_isInit) {
+      final todoId = ModalRoute.of(context)!.settings.arguments;
+      if (todoId != null) {
+        _editTodo = Provider.of<TodosModel>(context, listen: false)
+            .findById(todoId as String);
+        _initValues = {
+          'title': _editTodo.title!,
+        };
+      }
+    }
+    _isInit = false;
+
+    super.didChangeDependencies();
+  }
+
+  Future<void> _saveForm() async {
+    final isValid = _form.currentState!.validate();
+    if (!isValid) {
+      return;
+    }
+    _form.currentState!.save();
+    setState(() {
+      _isLodding = true;
+    });
+    if (_editTodo.id != null) {
+      Provider.of<TodosModel>(context, listen: false)
+          .updateTodo(_editTodo.id!, _editTodo);
+      setState(() {
+        _isLodding = false;
+      });
+      Navigator.of(context).pop();
+    } else {
+      try {
+        await Provider.of<TodosModel>(context, listen: false)
+            .addTodo(_editTodo);
+      } catch (error) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text('An eerror Occurred!'),
+            content: Text('Something went Wrong'),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text('Okey'))
+            ],
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLodding = false;
+        });
+        Navigator.of(context).pop();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final productId = ModalRoute.of(context)!.settings.arguments;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Edit Product'),
-        // actions: [IconButton(onPressed: _saveForm, icon: Icon(Icons.save))],
+        actions: [
+          IconButton(
+              onPressed: _saveForm, icon: Icon(Icons.save, color: Colors.white))
+        ],
       ),
       body: _isLodding
           ? Center(
@@ -53,8 +119,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           return null;
                         },
                         textInputAction: TextInputAction.next,
+                        // onFieldSubmitted: (_) {
+                        //   FocusScope.of(context).requestFocus(_priceFocusNode);
+                        // },
                         onSaved: (value) {
-                          _editProduct = Task(title: value!);
+                          _editTodo = Task(id: _editTodo.id, title: value!);
                         },
                       ),
                     ],

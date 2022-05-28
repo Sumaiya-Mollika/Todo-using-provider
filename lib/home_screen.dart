@@ -13,14 +13,33 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
+  var _isInit = true;
+  var _isLoadding = false;
   final taskTitleController = TextEditingController();
   bool completedStatus = false;
-
   @override
-  void dispose() {
-    taskTitleController.dispose();
-    super.dispose();
+  void didChangeDependencies() {
+    if (_isInit) {
+      setState(() {
+        _isLoadding = true;
+      });
+
+      Provider.of<TodosModel>(context).fetchAndSetTasks()
+          // as Map<String, dynamic>;
+          .then((_) {
+        setState(() {
+          _isLoadding = false;
+        });
+      });
+    }
+    _isInit = false;
+    super.didChangeDependencies();
   }
+  // @override
+  // void dispose() {
+  //   taskTitleController.dispose();
+  //   super.dispose();
+  // }
 
   void onAdd() {
     final String textVal = taskTitleController.text;
